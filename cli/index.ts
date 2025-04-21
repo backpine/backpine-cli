@@ -7,9 +7,9 @@ import { logSuccess, logError } from "./utils.js";
 const program = new Command();
 
 program
-  .name("backpine")
+  .name("backpinet")
   .description("CLI tool to create projects from templates")
-  .version("0.0.3");
+  .version("0.0.4");
 
 program
   .command("list")
@@ -17,8 +17,24 @@ program
   .action(async () => {
     try {
       const templates = await listTemplates();
-      console.log("Available templates:");
-      templates.forEach((template: string) => console.log(`- ${template}`));
+
+      if (templates.local.length > 0) {
+        console.log("Available local templates:");
+        templates.local.forEach((template: string) =>
+          console.log(`- ${template}`),
+        );
+      }
+
+      if (templates.github.length > 0) {
+        console.log("\nAvailable GitHub templates:");
+        templates.github.forEach((template: string) =>
+          console.log(`- ${template}`),
+        );
+      }
+
+      if (templates.local.length === 0 && templates.github.length === 0) {
+        console.log("No templates found");
+      }
     } catch (error: unknown) {
       logError(
         `Failed to list templates: ${error instanceof Error ? error.message : String(error)}`,

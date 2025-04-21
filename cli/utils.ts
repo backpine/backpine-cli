@@ -1,7 +1,8 @@
-import * as fs from 'fs/promises';
-import * as path from 'path';
-import { createReadStream, createWriteStream } from 'fs';
-import { pipeline } from 'stream/promises';
+import * as fs from "fs/promises";
+import * as path from "path";
+import { createReadStream, createWriteStream } from "fs";
+import { pipeline } from "stream/promises";
+import https from "https";
 
 /**
  * Log a success message
@@ -47,18 +48,18 @@ export async function fileExists(filePath: string): Promise<boolean> {
  * Default ignore patterns for template copying
  */
 export const DEFAULT_IGNORE_PATTERNS = [
-  'node_modules',
-  '.wrangler',
-  'dist',
-  '.git',
-  '.DS_Store',
-  'npm-debug.log',
-  'yarn-error.log',
-  '.env',
-  '.env.local',
-  '.env.development.local',
-  '.env.test.local',
-  '.env.production.local'
+  "node_modules",
+  ".wrangler",
+  "dist",
+  ".git",
+  ".DS_Store",
+  "npm-debug.log",
+  "yarn-error.log",
+  ".env",
+  ".env.local",
+  ".env.development.local",
+  ".env.test.local",
+  ".env.production.local",
 ];
 
 /**
@@ -66,9 +67,12 @@ export const DEFAULT_IGNORE_PATTERNS = [
  * @param filePath Path to check
  * @param ignorePatterns Array of glob patterns to ignore
  */
-export function shouldIgnorePath(filePath: string, ignorePatterns: string[] = DEFAULT_IGNORE_PATTERNS): boolean {
+export function shouldIgnorePath(
+  filePath: string,
+  ignorePatterns: string[] = DEFAULT_IGNORE_PATTERNS,
+): boolean {
   const basename = path.basename(filePath);
-  return ignorePatterns.some(pattern => {
+  return ignorePatterns.some((pattern) => {
     // Simple matching for now, could be extended to support glob patterns
     return basename === pattern || filePath.includes(`/${pattern}/`);
   });
@@ -78,9 +82,9 @@ export function shouldIgnorePath(filePath: string, ignorePatterns: string[] = DE
  * Copy a directory recursively with ignore patterns
  */
 export async function copyDirectory(
-  source: string, 
-  destination: string, 
-  ignorePatterns: string[] = DEFAULT_IGNORE_PATTERNS
+  source: string,
+  destination: string,
+  ignorePatterns: string[] = DEFAULT_IGNORE_PATTERNS,
 ): Promise<void> {
   // Check if path should be ignored
   if (shouldIgnorePath(source, ignorePatterns)) {
@@ -122,18 +126,21 @@ async function copyFile(source: string, destination: string): Promise<void> {
 /**
  * Update JSON file with specific fields
  */
-export async function updateJsonFile(filePath: string, updates: Record<string, any>): Promise<void> {
+export async function updateJsonFile(
+  filePath: string,
+  updates: Record<string, any>,
+): Promise<void> {
   try {
     // Read the JSON file
-    const content = await fs.readFile(filePath, 'utf-8');
+    const content = await fs.readFile(filePath, "utf-8");
     const json = JSON.parse(content);
-    
+
     // Apply updates
     const updatedJson = { ...json, ...updates };
-    
+
     // Write back to file
-    await fs.writeFile(filePath, JSON.stringify(updatedJson, null, 2), 'utf-8');
-    
+    await fs.writeFile(filePath, JSON.stringify(updatedJson, null, 2), "utf-8");
+
     logSuccess(`Updated ${path.basename(filePath)}`);
   } catch (error) {
     // If file doesn't exist or isn't valid JSON, log a warning but don't fail
@@ -145,35 +152,184 @@ export async function updateJsonFile(filePath: string, updates: Record<string, a
  * Update JSONC file (JSON with comments) with specific fields
  * This is a simplified implementation that works for basic JSONC files
  */
-export async function updateJsoncFile(filePath: string, updates: Record<string, any>): Promise<void> {
+export async function updateJsoncFile(
+  filePath: string,
+  updates: Record<string, any>,
+): Promise<void> {
   try {
     // Read the JSONC file
-    let content = await fs.readFile(filePath, 'utf-8');
-    
-    // Very simple comment handling - this could be improved with a proper JSONC parser
-    // Remove comments for parsing
-    const contentWithoutComments = content.replace(/\/\/.*$/gm, '');
-    
+    let content = await fs.readFile(filePath, "utf-8");
+
+    // Better comment handling - remove block comments first, then line comments
+    const contentWithoutBlockComments = content.replace(
+      /\/\*[\s\S]*?\*\//g,
+      "",
+    );
+    const contentWithoutComments = contentWithoutBlockComments.replace(
+      /\/\/.*$/gm,
+      "",
+    );
+
     // Parse the JSON
     const json = JSON.parse(contentWithoutComments);
-    
-    // Apply updates
-    const updatedJson = { ...json, ...updates };
-    
-    // Find each key in the original content and update its value
-    // This is a simple approach that preserves comments but might not work for all JSONC files
+
+    // Apply updates directly to the JSON object
     for (const [key, value] of Object.entries(updates)) {
-      const regex = new RegExp(`("${key}"\s*:\s*)([^,\n}]*)`, 'g');
-      const stringValue = JSON.stringify(value);
-      content = content.replace(regex, `$1${stringValue}`);
+      json[key] = value;
     }
-    
-    // Write back to file
-    await fs.writeFile(filePath, content, 'utf-8');
-    
+
+    // Write back to file - we'll just write the updated JSON
+    // This loses comments, but prevents JSON parsing errors
+    await fs.writeFile(filePath, JSON.stringify(json, null, 2), "utf-8");
+
     logSuccess(`Updated ${path.basename(filePath)}`);
   } catch (error) {
     // If file doesn't exist or isn't valid JSONC, log a warning but don't fail
     logWarning(`Could not update ${filePath}: ${(error as Error).message}`);
+  }
+}
+
+/**
+ * Fetch JSON data from a URL
+ */
+export async function fetchJson(url: string): Promise<any> {
+  return new Promise((resolve, reject) => {
+    https
+      .get(
+        url,
+        {
+          headers: {
+            "User-Agent": "backpine-cli",
+            Accept: "application/vnd.github.v3+json",
+          },
+        },
+        (res) => {
+          let data = "";
+          res.on("data", (chunk) => {
+            data += chunk;
+          });
+          res.on("end", () => {
+            try {
+              const jsonData = JSON.parse(data);
+              if (res.statusCode !== 200) {
+                reject(
+                  new Error(
+                    `GitHub API error: ${jsonData.message || "Unknown error"}`,
+                  ),
+                );
+                return;
+              }
+              resolve(jsonData);
+            } catch (e) {
+              reject(e);
+            }
+          });
+        },
+      )
+      .on("error", (err) => {
+        reject(err);
+      });
+  });
+}
+
+/**
+ * List available templates from GitHub
+ */
+export async function listGitHubTemplates(): Promise<string[]> {
+  try {
+    // Fetch contents of the templates directory
+    const repoUrl =
+      "https://api.github.com/repos/backpine/backpine-cli/contents/templates";
+    const contents = await fetchJson(repoUrl);
+
+    // Filter for directories only
+    return contents
+      .filter((item: any) => item.type === "dir")
+      .map((item: any) => item.name);
+  } catch (error) {
+    logWarning(`Failed to fetch GitHub templates: ${(error as Error).message}`);
+    return [];
+  }
+}
+
+/**
+ * Download a file from GitHub
+ */
+async function downloadFile(url: string, destination: string): Promise<void> {
+  return new Promise((resolve, reject) => {
+    https
+      .get(url, (response) => {
+        if (response.statusCode === 302 || response.statusCode === 301) {
+          // Handle redirects
+          if (response.headers.location) {
+            downloadFile(response.headers.location, destination)
+              .then(resolve)
+              .catch(reject);
+            return;
+          }
+        }
+
+        if (response.statusCode !== 200) {
+          reject(new Error(`Failed to download: ${response.statusCode}`));
+          return;
+        }
+
+        const fileStream = createWriteStream(destination);
+        response.pipe(fileStream);
+
+        fileStream.on("finish", () => {
+          fileStream.close();
+          resolve();
+        });
+
+        fileStream.on("error", (err) => {
+          fs.unlink(destination).catch(() => {});
+          reject(err);
+        });
+      })
+      .on("error", reject);
+  });
+}
+
+/**
+ * Download a directory from GitHub recursively
+ */
+export async function downloadGitHubRepo(
+  owner: string,
+  repo: string,
+  path: string,
+  destination: string,
+  ignorePatterns: string[] = DEFAULT_IGNORE_PATTERNS,
+): Promise<void> {
+  const url = `https://api.github.com/repos/${owner}/${repo}/contents/${path}`;
+  const contents = await fetchJson(url);
+
+  if (!Array.isArray(contents)) {
+    throw new Error("Expected directory contents but got a file");
+  }
+
+  await fs.mkdir(destination, { recursive: true });
+
+  for (const item of contents) {
+    const destPath = `${destination}/${item.name}`;
+
+    // Skip ignored patterns
+    if (shouldIgnorePath(destPath, ignorePatterns)) {
+      continue;
+    }
+
+    if (item.type === "dir") {
+      // Recursively download subdirectory
+      await downloadGitHubRepo(
+        owner,
+        repo,
+        item.path,
+        destPath,
+        ignorePatterns,
+      );
+    } else if (item.type === "file") {
+      // Download file
+      await downloadFile(item.download_url, destPath);
+    }
   }
 }

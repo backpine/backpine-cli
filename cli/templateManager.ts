@@ -1,71 +1,43 @@
 import * as fs from "fs/promises";
-import { accessSync } from "fs";
-
 import * as path from "path";
-import { fileURLToPath } from "url";
 import {
   fileExists,
-  copyDirectory,
   logInfo,
   logSuccess,
   updateJsonFile,
-  updateJsoncFile,
   DEFAULT_IGNORE_PATTERNS,
+  downloadGitHubRepo,
+  listGitHubTemplates,
 } from "./utils.js";
 
 /**
- * Get the absolute path to the templates directory
+ * List all available templates (from GitHub)
  */
-function getTemplatesDir(): string {
-  const __filename = fileURLToPath(import.meta.url);
-  const __dirname = path.dirname(__filename);
+export async function listTemplates(): Promise<{
+  local: string[];
+  github: string[];
+}> {
+  const githubTemplates = await listGitHubTemplates();
 
-  // Try different possible locations for templates
-  const possiblePaths = [
-    path.resolve(__dirname, "../templates"), // when running from dist
-    path.resolve(__dirname, "../../templates"), // when running from project root
-    path.resolve(process.cwd(), "templates"), // fallback to current working directory
-  ];
-
-  for (const templatePath of possiblePaths) {
-    try {
-      accessSync(templatePath);
-      return templatePath;
-    } catch (error) {
-      // Path doesn't exist, try next one
-    }
-  }
-
-  // If we get here, we couldn't find templates
-  throw new Error(
-    "Templates directory not found. Make sure it exists in the package.",
-  );
+  return {
+    local: [], // No more local templates
+    github: githubTemplates,
+  };
 }
 
 /**
- * List all available templates
+ * Check if a template exists on GitHub
  */
-export async function listTemplates(): Promise<string[]> {
-  const templatesDir = getTemplatesDir();
-  const templates = await fs.readdir(templatesDir);
-  const filteredTemplates = [];
-
-  for (const template of templates) {
-    const stats = await fs.stat(path.join(templatesDir, template));
-    if (stats.isDirectory()) {
-      filteredTemplates.push(template);
-    }
+async function templateExists(
+  templateName: string,
+): Promise<{ exists: boolean; source: "github" }> {
+  // Check if it's a GitHub template
+  const githubTemplates = await listGitHubTemplates();
+  if (githubTemplates.includes(templateName)) {
+    return { exists: true, source: "github" };
   }
 
-  return filteredTemplates;
-}
-
-/**
- * Check if a template exists
- */
-async function templateExists(templateName: string): Promise<boolean> {
-  const templatePath = path.join(getTemplatesDir(), templateName);
-  return fileExists(templatePath);
+  return { exists: false, source: "github" };
 }
 
 /**
@@ -78,8 +50,9 @@ export async function createProjectFromTemplate(
   ignorePatterns: string[] = DEFAULT_IGNORE_PATTERNS,
 ): Promise<void> {
   // Check if template exists
-  if (!(await templateExists(templateName))) {
-    throw new Error(`Template '${templateName}' not found`);
+  const template = await templateExists(templateName);
+  if (!template.exists) {
+    throw new Error(`Template '${templateName}' not found on GitHub`);
   }
 
   // Create project directory path
@@ -93,10 +66,16 @@ export async function createProjectFromTemplate(
   // Create project directory
   await fs.mkdir(projectPath, { recursive: true });
 
-  // Copy template to project directory with ignore patterns
-  const templatePath = path.join(getTemplatesDir(), templateName);
-  logInfo(`Copying template '${templateName}' to '${projectPath}'...`);
-  await copyDirectory(templatePath, projectPath, ignorePatterns);
+  // Download from GitHub
+  logInfo(
+    `Downloading GitHub template '${templateName}' to '${projectPath}'...`,
+  );
+  await downloadGitHubRepo(
+    "backpine",
+    "backpine-cli",
+    `templates/${templateName}`,
+    projectPath,
+  );
 
   // Update package.json with project name if it exists
   const packageJsonPath = path.join(projectPath, "package.json");
@@ -107,7 +86,26 @@ export async function createProjectFromTemplate(
   // Update wrangler.jsonc with project name if it exists
   const wranglerJsoncPath = path.join(projectPath, "wrangler.jsonc");
   if (await fileExists(wranglerJsoncPath)) {
-    await updateJsoncFile(wranglerJsoncPath, { name: projectName });
+    try {
+      const wranglerContent = await fs.readFile(wranglerJsoncPath, "utf-8");
+      const updatedContent = wranglerContent.replace(
+        /<PROJECT_NAME>/g,
+        projectName,
+      );
+
+      // Check if any replacements were actually made
+      if (wranglerContent === updatedContent) {
+        logInfo("No '<PROJECT_NAME>' placeholders found in wrangler.jsonc");
+      } else {
+        await fs.writeFile(wranglerJsoncPath, updatedContent);
+        logInfo(`Updated wrangler.jsonc with project name: ${projectName}`);
+      }
+    } catch (error) {
+      // Throw error instead of just logging
+      throw new Error(
+        `Failed to update project name in wrangler.jsonc: ${(error as Error).message}`,
+      );
+    }
   }
 
   // Log success message
