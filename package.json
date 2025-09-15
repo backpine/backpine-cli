@@ -1,32 +1,56 @@
 {
-  "name": "backpine",
-  "version": "1.0.1",
-  "description": "CLI tool to create projects from templates",
-  "main": "dist/cli/index.js",
-  "bin": {
-    "backpine": "./dist/cli/index.js"
-  },
+  "name": "backpine-cli",
+  "version": "1.0.7",
+  "description": "A CLI tool for creating projects from curated templates",
   "type": "module",
+  "main": "dist/index.js",
+  "bin": {
+    "backpine": "./bin/backpine.js"
+  },
   "scripts": {
-    "build": "rm -rf dist && tsc && chmod +x dist/cli/index.js",
-    "start": "node dist/cli/index.js",
-    "dev": "ts-node --esm cli/index.ts",
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "prepublishOnly": "npm run build",
+    "start": "node dist/index.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
-  "files": [
-    "dist",
-    "templates"
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/backpine/backpine-cli.git"
+  },
+  "keywords": [
+    "cli",
+    "template",
+    "scaffold",
+    "generator",
+    "project",
+    "boilerplate"
   ],
-  "author": "Matthew Sessions",
-  "license": "ISC",
+  "author": "Backpine",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/backpine/backpine-cli/issues"
+  },
+  "homepage": "https://github.com/backpine/backpine-cli#readme",
+  "engines": {
+    "node": ">=16.0.0"
+  },
+  "files": [
+    "dist/**/*",
+    "bin/**/*"
+  ],
   "dependencies": {
-    "commander": "^11.1.0",
-    "node": "^23.11.0"
+    "chalk": "^5.6.0",
+    "commander": "^14.0.0",
+    "fs-extra": "^11.3.1",
+    "ora": "^8.2.0",
+    "simple-git": "^3.28.0",
+    "validate-npm-package-name": "^6.0.2"
   },
   "devDependencies": {
-    "@types/node": "^20.11.0",
-    "inquirer": "^12.5.2",
-    "ts-node": "^10.9.2",
-    "typescript": "^5.3.3"
+    "@types/fs-extra": "^11.0.4",
+    "@types/node": "^24.3.0",
+    "@types/validate-npm-package-name": "^4.0.2",
+    "typescript": "^5.9.2"
   }
 }

@@ -1,4 +1,0 @@
-const tsrStartManifest = () => ({ "routes": { "__root__": { "filePath": "/Users/matthewsessions/workspace/backpine/backpine-cli/templates/tanstack-start/src/routes/__root.tsx", "children": ["/"], "preloads": ["/assets/main-Bld52YFN.js"], "assets": [{ "tag": "link", "attrs": { "rel": "stylesheet", "href": "/assets/main-Ve2PUTOI.css", "type": "text/css" } }, { "tag": "script", "attrs": { "src": "/assets/main-Bld52YFN.js", "type": "module" } }] }, "/": { "filePath": "/Users/matthewsessions/workspace/backpine/backpine-cli/templates/tanstack-start/src/routes/index.tsx", "assets": [{ "tag": "link", "attrs": { "rel": "stylesheet", "href": "/assets/main-Ve2PUTOI.css", "type": "text/css" } }], "preloads": ["/assets/index-BHxSSsBi.js"] } } });
-
-export { tsrStartManifest };
-//# sourceMappingURL=_tanstack-start-manifest_v-DatpiahU.mjs.map
