@@ -5,7 +5,13 @@ A powerful CLI tool for creating projects from curated templates. Get started qu
 ## Installation
 
 ```bash
-npm install -g backpine-cli
+npm install -g backpine
+```
+
+Or use without installing:
+
+```bash
+npx backpine@latest
 ```
 
 ## Usage
@@ -13,14 +19,15 @@ npm install -g backpine-cli
 ### Create a new project
 
 ```bash
-# Interactive mode - CLI will prompt you for project name and template
-backpine create
+# Create project in current directory
+backpine create saas-kit
+# or
+npx backpine@latest create saas-kit
 
-# Specify project name
-backpine create my-awesome-app
-
-# Specify both project name and template
-backpine create my-saas-app --template saas-kit
+# Create project in a new directory
+backpine create saas-kit --name my-awesome-app
+# or
+npx backpine@latest create saas-kit --name my-awesome-app
 ```
 
 ### List available templates
@@ -45,37 +52,14 @@ backpine create --help
 - 🚀 **Fast setup** - Get a new project running in seconds
 - 🎯 **Curated templates** - Production-ready templates with best practices
 - 🔧 **Smart initialization** - Automatically sets up git repository and updates package.json
-- 💡 **Interactive prompts** - User-friendly CLI with helpful prompts
 - 🎨 **Beautiful output** - Colored terminal output with progress indicators
 
 ## What it does
 
 1. **Clones** the selected template repository
 2. **Removes** git history from the template
-3. **Updates** project name in package.json
+3. **Updates** project name in package.json (if --name is provided)
 4. **Initializes** a fresh git repository
-5. **Creates** initial commit
-
-## Development
-
-```bash
-# Clone the repository
-git clone https://github.com/backpine/backpine-cli.git
-cd backpine-cli
-
-# Install dependencies
-npm install
-
-# Build the project
-npm run build
-
-# Test locally
-node bin/backpine.js --help
-```
-
-## Contributing
-
-We welcome contributions! Please feel free to submit a Pull Request.
 
 ## License
 
