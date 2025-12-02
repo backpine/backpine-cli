@@ -9,11 +9,7 @@ import {
   checkDirectoryExists,
   isDirectoryEmpty,
 } from "../utils/validation.js";
-import {
-  cloneRepository,
-  cleanGitHistory,
-  initializeGit,
-} from "../utils/git.js";
+import { cloneRepository } from "../utils/git.js";
 
 export async function createProject(
   templateName: string,
@@ -75,15 +71,7 @@ export async function createProject(
 
     try {
       await cloneRepository(selectedTemplate, targetDir);
-      spinner.succeed("Template cloned successfully");
-
-      spinner.start("Cleaning up git history...");
-      await cleanGitHistory(targetDir);
-      spinner.succeed("Git history cleaned");
-
-      spinner.start("Initializing new git repository...");
-      await initializeGit(targetDir);
-      spinner.succeed("New git repository initialized");
+      spinner.succeed("Template cloned successfully (repoless)");
 
       // Step 6: Update package.json if it exists and project name was provided
       if (projectName) {

@@ -16,7 +16,13 @@ export async function cloneRepository(template: Template, targetDir: string): Pr
     '--single-branch': null,
     '--depth': '1'
   });
-  
+
+  // Remove .git from cloned repo to make it repoless
+  const clonedGitDir = path.join(cloneTarget, '.git');
+  if (await fs.pathExists(clonedGitDir)) {
+    await fs.remove(clonedGitDir);
+  }
+
   // If we cloned to a temp directory, move contents to current directory
   if (isCurrentDir) {
     const tempContents = await fs.readdir(cloneTarget);
@@ -28,19 +34,4 @@ export async function cloneRepository(template: Template, targetDir: string): Pr
     // Remove the temp directory
     await fs.remove(cloneTarget);
   }
-}
-
-export async function cleanGitHistory(targetDir: string): Promise<void> {
-  const gitDir = path.join(targetDir, '.git');
-  
-  if (await fs.pathExists(gitDir)) {
-    await fs.remove(gitDir);
-  }
-}
-
-export async function initializeGit(targetDir: string): Promise<void> {
-  const git = simpleGit(targetDir);
-  await git.init();
-  await git.add('.');
-  await git.commit('Initial commit from backpine-cli');
 }
