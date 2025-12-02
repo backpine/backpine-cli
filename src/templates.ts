@@ -17,6 +17,13 @@ export const templates: Template[] = [
     branch: "main",
     category: "Starter Kit",
   },
+  {
+    name: "tanstack-trpc-on-cloudflare",
+    description: "Tanstack Router + Query + tRPC on Cloudflare Workers",
+    repo: "https://github.com/backpine/tanstack-trpc-on-cloudflare.git",
+    branch: "main",
+    category: "Starter Kit",
+  },
 ];
 
 export function getTemplate(name: string): Template | undefined {
