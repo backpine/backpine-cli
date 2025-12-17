@@ -24,6 +24,13 @@ export const templates: Template[] = [
     branch: "main",
     category: "Starter Kit",
   },
+  {
+    name: "effect-worker",
+    description: "Effect HTTP Worker runtime",
+    repo: "https://github.com/backpine/effect-worker",
+    branch: "main",
+    category: "Effect",
+  },
 ];
 
 export function getTemplate(name: string): Template | undefined {
