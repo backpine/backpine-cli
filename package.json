@@ -1,6 +1,6 @@
 {
   "name": "backpine",
-  "version": "1.0.13",
+  "version": "1.0.14",
   "description": "A CLI tool for creating projects from curated templates",
   "type": "module",
   "main": "dist/index.js",

@@ -26,8 +26,15 @@ export const templates: Template[] = [
   },
   {
     name: "effect-worker",
-    description: "Effect HTTP Worker runtime",
+    description: "Effect on Cloudflare Worker runtime",
     repo: "https://github.com/backpine/effect-worker",
+    branch: "main",
+    category: "Effect",
+  },
+  {
+    name: "effect-worker-mono",
+    description: "Effect on Cloudflare Worker runtime (Monorepo)",
+    repo: "https://github.com/backpine/effect-worker-mono",
     branch: "main",
     category: "Effect",
   },
