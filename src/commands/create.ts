@@ -73,7 +73,7 @@ export async function createProject(
       await cloneRepository(selectedTemplate, targetDir);
       spinner.succeed("Template cloned successfully (repoless)");
 
-      // Step 6: Update package.json if it exists and project name was provided
+      // Step 6: Update package.json and wrangler.jsonc if it exists and project name was provided
       if (projectName) {
         const packageJsonPath = path.join(targetDir, "package.json");
         if (await fs.pathExists(packageJsonPath)) {
@@ -82,6 +82,19 @@ export async function createProject(
           packageJson.name = projectName;
           await fs.writeJson(packageJsonPath, packageJson, { spaces: 2 });
           spinner.succeed("Package.json updated with new project name");
+        }
+
+        const wranglerJsoncPath = path.join(targetDir, "apps", "user-application", "wrangler.jsonc");
+        if (await fs.pathExists(wranglerJsoncPath)) {
+          spinner.start("Updating wrangler.jsonc...");
+          // maybe replace with a jsonc parser in the future? like jsonc-parser
+          let wranglerJsonc = await fs.readFile(wranglerJsoncPath, "utf-8");
+          wranglerJsonc = wranglerJsonc.replace(
+            /"name":\s*".*"/,
+            `"name": "${projectName}"`,
+          );
+          await fs.writeFile(wranglerJsoncPath, wranglerJsonc, "utf-8");
+          spinner.succeed("wrangler.jsonc updated with new project name");
         }
       }
 
